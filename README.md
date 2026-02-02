@@ -72,6 +72,27 @@ After deploy, the endpoint is:
 https://<your-domain>/search?q=coffee&limit=3&key=API_KEY
 ```
 
+## Vercel Hobby Plan Performance Notes
+
+Vercel Functions default to running in the `iad1` region (Washington, D.C., USA) unless you change the region in your project settings or configuration. This can add latency when your users or target data are far from that region (e.g., Indonesia), so Hobby plan deployments may feel slower.
+
+Below is a quick benchmark from Hobby plan testing (request time includes end-to-end scraping):
+
+| Query             | Limit | Duration (ms) |
+| ----------------- | ----- | ------------- |
+| `cafe in jakarta` | 1     | 10,555        |
+| `cafe in jakarta` | 2     | 5,276         |
+| `cafe in jakarta` | 3     | 9,149         |
+| `cafe in jakarta` | 5     | 6,365         |
+| `cafe in jakarta` | 10    | 4,377         |
+| `cafe in jakarta` | 20    | 9,291         |
+| `cafe in jakarta` | 50    | 39,267        |
+
+Notes:
+
+- Results are non-linear (e.g., limit=10 is faster than limit=3) because cold starts, cache reuse, and Google Maps response time can vary per request.
+- These numbers can vary by time of day, Google Maps throttling, and cold starts. Consider optimizing limits or upgrading if you need more consistent performance.
+
 ## API
 
 ### `GET /search`
