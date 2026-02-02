@@ -5,6 +5,8 @@ import puppeteerCore from "puppeteer-core";
 import express from "express";
 import fs from "node:fs";
 import "dotenv/config";
+import "puppeteer-extra-plugin-user-preferences";
+import "puppeteer-extra-plugin-user-data-dir";
 
 puppeteerExtra.use(StealthPlugin());
 
