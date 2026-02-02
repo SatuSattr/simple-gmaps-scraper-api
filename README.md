@@ -2,6 +2,8 @@
 
 Lightweight Google Maps scraper API built with Node.js, Express, and Puppeteer Extra (Stealth). It returns only **name**, **address**, **latitude**, **longitude**, and **mapsUrl**.
 
+the background story of this project is originally comes from the not so detailed places point in [OpenStreetMap](https://www.openstreetmap.org/). but i remember i could just scrape the longitude/latitude coordinate of a certain location from Google and use that to place the pinpoint in OpenStreetMap. However, this project is not affiliated with OpenStreetMap, its purely my hobby projects, feel free to use for hobby purposes.
+
 ## Features
 
 - Fast list-mode scraping (no clicking results)
@@ -134,12 +136,3 @@ Response:
 - The scraper uses list view data when multiple results appear.
 - Coordinates are extracted from the Maps URL.
 - If Google blocks the request, try a different network or reduce request rate.
-
-## Logging
-
-Each request logs:
-
-- Request ID
-- Method & URL
-- Selected User-Agent
-- Status code and duration
