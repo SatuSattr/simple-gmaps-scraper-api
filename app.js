@@ -97,6 +97,14 @@ function extractLatLngFromUrl(url) {
   return { latitude: null, longitude: null };
 }
 
+function cleanText(text) {
+  if (!text) return "";
+  return text
+    .replace(/[\uE000-\uF8FF]/g, "")
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -115,10 +123,20 @@ async function humanScrollFeed(page) {
   await delay(400 + Math.floor(Math.random() * 600));
 }
 
+function isPlaceUrl(url) {
+  return url.includes("/maps/place/") || url.includes("/maps/data=");
+}
+
+async function isNoResults(page) {
+  return page.evaluate(() => {
+    const text = document.body?.innerText || "";
+    return /Google Maps can't find|No results|Try Google Search instead/i.test(text);
+  });
+}
 async function extractPlaceData(page) {
-  await page.waitForSelector("h1[role='heading']", { timeout: 15000 });
+  await page.waitForSelector("h1", { timeout: 15000 });
   const name = await page.$eval(
-    "h1[role='heading']",
+    "h1",
     (el) => el.textContent?.trim() ?? "",
   );
   const address = await page.evaluate(() => {
@@ -131,12 +149,29 @@ async function extractPlaceData(page) {
   });
   const mapsUrl = page.url();
   const { latitude, longitude } = extractLatLngFromUrl(mapsUrl);
+  const cleanedAddress = cleanText(address);
+
+  let finalUrl = mapsUrl;
+  if (!latitude || !longitude) {
+    try {
+      await page.waitForFunction(
+        () => window.location.href.includes("/maps/place/"),
+        { timeout: 5000 },
+      );
+      finalUrl = page.url();
+    } catch (err) {
+      finalUrl = mapsUrl;
+    }
+  }
+
+  const finalCoords = extractLatLngFromUrl(finalUrl);
+
   return {
     name,
-    address,
-    latitude,
-    longitude,
-    mapsUrl,
+    address: cleanedAddress,
+    latitude: finalCoords.latitude,
+    longitude: finalCoords.longitude,
+    mapsUrl: finalUrl,
   };
 }
 
@@ -261,7 +296,7 @@ async function extractListResults(page, limit) {
     const { latitude, longitude } = extractLatLngFromUrl(item.mapsUrl);
     return {
       name: item.name,
-      address: item.address,
+      address: cleanText(item.address),
       latitude,
       longitude,
       mapsUrl: item.mapsUrl,
@@ -290,17 +325,36 @@ async function scrapeGoogleMaps(query, limit, requestId = "unknown") {
     });
 
     let mode = null;
-    try {
-      mode = await Promise.race([
-        page
-          .waitForSelector("div[role='feed']", { timeout: 8000 })
-          .then(() => "list"),
-        page
-          .waitForSelector("h1[role='heading']", { timeout: 8000 })
-          .then(() => "place"),
-      ]);
-    } catch (err) {
-      mode = null;
+    const currentUrl = page.url();
+    const noResults = await isNoResults(page);
+
+    if (noResults) {
+      mode = "none";
+    } else {
+      const feed = await page.$("div[role='feed']");
+      if (feed) {
+        mode = "list";
+      } else if (isPlaceUrl(currentUrl)) {
+        try {
+          await page.waitForSelector("h1, h1", { timeout: 8000 });
+          mode = "place";
+        } catch (err) {
+          mode = null;
+        }
+      } else {
+        try {
+          mode = await Promise.race([
+            page
+              .waitForSelector("div[role='feed']", { timeout: 8000 })
+              .then(() => "list"),
+            page
+              .waitForSelector("h1, h1", { timeout: 8000 })
+              .then(() => "place"),
+          ]);
+        } catch (err) {
+          mode = null;
+        }
+      }
     }
 
     const results = [];
