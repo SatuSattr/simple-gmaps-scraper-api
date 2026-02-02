@@ -1,4 +1,4 @@
-import chromium from "@sparticuz/chromium";
+ï»¿import chromium from "@sparticuz/chromium";
 import puppeteerExtra from "puppeteer-extra";
 import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import puppeteerCore from "puppeteer-core";
@@ -226,8 +226,8 @@ async function extractListResults(page, limit) {
         }
 
         address = cleanText(address);
-        if (address.includes("·")) {
-          const parts = address.split("·").map((part) => cleanText(part));
+        if (address.includes("ï¿½")) {
+          const parts = address.split("ï¿½").map((part) => cleanText(part));
           const tail = parts[parts.length - 1] ?? "";
           if (looksLikeAddress(tail)) {
             address = tail;
@@ -346,6 +346,13 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    ok: true,
+    status: "healthy",
+  });
 });
 
 app.get("/search", async (req, res) => {
